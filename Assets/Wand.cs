@@ -3,36 +3,27 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class Wand : MonoBehaviour {
-    private static bool found1 = false;
-    public SteamVR_Controller.Device controller;
+    //public SteamVR_Controller.Device controller;
 
     public delegate void ReadyAction();
     public event ReadyAction OnReady;
-    public int index;
     // Use this for initialization
     void Start () {
-        index = (int)GetComponent<SteamVR_TrackedObject>().index;
-        Debug.logger.Log(index);
-        if (index == 1)
-        {
-            Invoke("Ready", 3f);
-        }else
-        {
-            Ready();
-        }
-        
+        Debug.logger.Log("WAND created");
     }
 
-    void Ready()
+    public SteamVR_Controller.Device GetController()
     {
-        Debug.logger.Log("ready "+ (int)GetComponent<SteamVR_TrackedObject>().index);
-        controller = SteamVR_Controller.Input(index);
-        OnReady();
+        var x = (int)GetComponent<SteamVR_TrackedObject>().index;
+        Debug.logger.Log(x);
+        if (x == -1)
+        {
+            return null;
+        }
+        return SteamVR_Controller.Input(x);
     }
 	
 	// Update is called once per frame
 	void Update () {
-        Debug.logger.Log("boom " + (int)GetComponent<SteamVR_TrackedObject>().index);
-        //Debug.logger.Log((int)GetComponent<SteamVR_TrackedObject>().index);
     }
 }

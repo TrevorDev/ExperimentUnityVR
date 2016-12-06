@@ -3,16 +3,14 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class MainScript : MonoBehaviour {
-    
-    public GameObject leftGameObj;
-    public GameObject rightGameObj;
-    public GameObject headGameObj;
+    public GameObject cameraRig;
+    private GameObject leftGameObj;
+    private GameObject rightGameObj;
 
     public GameObject cube;
 
-    private SteamVR_Controller.Device left;
-    private SteamVR_Controller.Device right;
-    private GameObject head;
+    private SteamVR_TrackedController left;
+    private SteamVR_TrackedController right;
 
     private List<GameObject> blocks = new List<GameObject>();
     private int curBlock = 0;
@@ -41,15 +39,11 @@ public class MainScript : MonoBehaviour {
 
     // Use this for initialization
     void Start () {
-        var temp = leftGameObj.GetComponent<Wand>();
-        temp.OnReady += () => {
-            left = leftGameObj.GetComponent<Wand>().controller;
-        };
-
-        var rtemp = rightGameObj.GetComponent<Wand>();
-        rtemp.OnReady += () => {
-            right = rightGameObj.GetComponent<Wand>().controller;
-        };
+        var manager = cameraRig.GetComponent<SteamVR_ControllerManager>();
+        leftGameObj = manager.left;
+        rightGameObj = manager.right;
+        left = cameraRig.GetComponent<SteamVR_ControllerManager>().left.GetComponent<SteamVR_TrackedController>();
+        right = cameraRig.GetComponent<SteamVR_ControllerManager>().right.GetComponent<SteamVR_TrackedController>();
     }
 	
 	// Update is called once per frame
@@ -57,7 +51,7 @@ public class MainScript : MonoBehaviour {
         if (left != null)
         {
             //Debug.logger.Log(left.GetHairTrigger());
-            if (left.GetHairTriggerDown())
+            if (left.triggerPressed)
             {
                 Debug.logger.Log("created");
                 var newCube = createCube(leftGameObj.transform.position, leftGameObj.transform.rotation);
@@ -70,10 +64,10 @@ public class MainScript : MonoBehaviour {
 
         if (right != null)
         {
-            if (right.GetHairTriggerDown())
+            if (right.triggerPressed)
             {
                 Debug.logger.Log("created");
-                var gridSize = 5;
+                //var gridSize = 5;
                 for(var x = 0; x < 2; x++)
                 {
                     for (var y = 0; y < 10; y++)
@@ -96,11 +90,5 @@ public class MainScript : MonoBehaviour {
                 
             }
         }
-
-        
-        //Debug.logger.Log((int)leftTrackedObject.index);
-        //this.camera.GetComponent<SteamVR_ControllerManager>().left
-        //Debug.logger.Log(head.transform.position.y);
-        //Debug.logger.Log(left.hairTriggerDelta);
     }
 }
