@@ -25,10 +25,10 @@ public class sword : MonoBehaviour {
 
     private void OnCollisionEnter(Collision collision)
     {
-        Debug.logger.Log("collide");
-        if(collision.gameObject.name == "Bullet")
-        {
-            collision.gameObject.transform.position.Set(0f, -1000f, 0f);
-        }
+        //Debug.logger.Log("collide");
+        //if(collision.gameObject.name == "Bullet")
+        //{
+        //    collision.gameObject.transform.position.Set(0f, -1000f, 0f);
+        //}
     }
 }
