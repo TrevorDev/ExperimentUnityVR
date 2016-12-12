@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class MainScript : MonoBehaviour {
-
+    public static MainScript global;
     public GameObject sword;
+    public GameObject target;
 
     //Controller
     public GameObject cameraRig;
@@ -12,84 +13,96 @@ public class MainScript : MonoBehaviour {
     private Controller right;
 
     private List<Controller> controllers = new List<Controller>();
-    float swordLen = 0.1f;
+    float swordLen = 1.1f;
+
+    private List<GameObject> targets = new List<GameObject>();
+
+    public int score = 0;
+
+    //spawners
+    public GameObject bullet;
+    public GameObject particle;
+    public Spawner particleSpawner;
+    public Spawner bulletSpawner;
+
     // Use this for initialization
     void Start () {
+        global = this;
+        particleSpawner = new Spawner(particle, 300);
+        bulletSpawner = new Spawner(bullet, 300);
+
         var manager = cameraRig.GetComponent<SteamVR_ControllerManager>();
-        left = new Controller(cameraRig.GetComponent<SteamVR_ControllerManager>().left.GetComponent<SteamVR_TrackedController>());
-        right = new Controller(cameraRig.GetComponent<SteamVR_ControllerManager>().right.GetComponent<SteamVR_TrackedController>());
+        left = new Controller(manager.left.GetComponent<SteamVR_TrackedController>());
+        right = new Controller(manager.right.GetComponent<SteamVR_TrackedController>());
+
+        left.sword = Instantiate(sword, left.transform);
+        left.sword.transform.localScale = new Vector3(.05f, .05f, swordLen);
+
+        right.sword = Instantiate(sword, right.transform);
+        right.sword.transform.localScale = new Vector3(.05f, .05f, swordLen);
+
         controllers.Add(left);
         controllers.Add(right);
-
-        sword = Instantiate(sword, left.transform);
-        sword.transform.localScale = new Vector3(.05f, .05f, swordLen);
+        SpawnTargets();
     }
-	
-	// Update is called once per frame
-	void Update () {
-        controllers.ForEach((c) => { c.Update(); });
-        if (left.actionPressed)
+
+	void SpawnTargets()
+    {
+        if(targets.Count <= 3)
         {
-            var newBullet = createBullet(left.transform.position, left.transform.rotation);
-            newBullet.transform.localScale = new Vector3(.1f, .1f, .1f);
-            newBullet.GetComponent<Rigidbody>().velocity = (left.transform.up*-1+ left.transform.forward).normalized * 10;
-            swordLen += 0.1f;
-            sword.transform.localScale = new Vector3(.05f, .05f, swordLen);
+            targets.Add(Instantiate(target));
+            Invoke("SpawnTargets", 10);
         }
-
-        sword.transform.position = left.transform.position+(left.transform.forward* (swordLen/2+ 0.2f));
-        sword.transform.rotation = left.transform.rotation;
-
-        if (right.actionPressed)
-        {
-            //var gridSize = 5;
-            for(var x = 0; x < 3; x++)
+    }
+    // Update is called once per frame
+    void Update () {
+        //Controlls
+        controllers.ForEach((c) => {
+            c.Update();
+            if (c.actionPressed)
             {
-                for (var y = 0; y < 7; y++)
+                var newBullet = bulletSpawner.createObj(c.transform.position, c.transform.rotation);
+                newBullet.transform.localScale = new Vector3(.1f, .1f, .1f);
+                newBullet.GetComponent<Rigidbody>().velocity = (c.transform.up * -1 + c.transform.forward).normalized * 10;
+                c.sword.transform.localScale = new Vector3(.05f, .05f, swordLen);
+            }
+
+            c.sword.transform.position = c.transform.position + (c.transform.forward * (swordLen / 2 + 0.2f));
+            c.sword.transform.rotation = c.transform.rotation;
+        });
+
+        //Basic AI
+        targets.ForEach((t) => {
+            var dir = cameraRig.transform.position - t.transform.position;
+            dir.y = 0;
+            if (dir.magnitude > 0.5)
+            {
+                dir.Normalize();
+                dir *= 0.1f;
+                t.GetComponent<Rigidbody>().velocity += dir;
+                if (t.GetComponent<Rigidbody>().velocity.magnitude > 2)
                 {
-                    float offset = (float)x - 5f;
-                    var euler = right.transform.rotation.eulerAngles;
-                    euler.x = 0;
-                    euler.z = 0;
-                    var newRotation = Quaternion.Euler(euler);
-                    //Debug.logger.Log(euler);
-                    var newPosition = right.transform.position;
-                    newPosition += newRotation * Vector3.forward;
-                    newPosition.y = y * 0.13f + 0.1f;
-                    newPosition += offset * 0.13f * (newRotation * Vector3.left);
-
-                    var newBullet = createBullet( newPosition, newRotation);
-
-                    newBullet.transform.localScale = new Vector3(.1f, .1f, .1f);
+                    t.GetComponent<Rigidbody>().velocity = t.GetComponent<Rigidbody>().velocity.normalized * 2;
                 }
             }
-                
-        }
-    }
+            else if(t.GetComponent<Target>().outer.GetComponent<Brick>().health > 0 || t.GetComponent<Target>().inner.GetComponent<Brick>().health > 0)
+            {
+                if(score != 0)
+                {
+                    GameObject.Find("Score").GetComponent<TextMesh>().text = "Game Over: " + score;
+                }
+                score = 0;
+                t.GetComponent<Rigidbody>().velocity = new Vector3();
+            }
 
-    //block spawner
-    public GameObject bullet;
-    private List<GameObject> bullets = new List<GameObject>();
-    private int curBlock = 0;
-    private int maxBlocks = 100;
-    private GameObject createBullet(Vector3 position, Quaternion rotation)
-    {
-        GameObject newBullet;
-        if (bullets.Count < maxBlocks)
-        {
-            newBullet = Instantiate(bullet, position, rotation);
-            bullets.Add(newBullet);
-        }
-        else
-        {
-            newBullet = bullets[curBlock];
-            newBullet.transform.position = position;
-            newBullet.transform.rotation = rotation;
-            curBlock++;
-            curBlock = curBlock % maxBlocks;
-        }
+            if (t.GetComponent<Target>().outer.GetComponent<Brick>().health <= 0 && t.GetComponent<Target>().inner.GetComponent<Brick>().health <= 0)
+            {
+                score++;
+                GameObject.Find("Score").GetComponent<TextMesh>().text = ""+ score;
+                t.GetComponent<Target>().Start();
+            }
+        });
 
-        newBullet.GetComponent<Rigidbody>().velocity = new Vector3(0, 0, 0);
-        return newBullet;
+        
     }
 }

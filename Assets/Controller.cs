@@ -5,6 +5,7 @@ using UnityEngine;
 public class Controller {
     private SteamVR_TrackedController c;
 
+    public GameObject sword;
     public bool actionPressed = false;
     public bool actionHeld = false;
 
